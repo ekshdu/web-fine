@@ -3,4 +3,4 @@
 
 **Диаграмма связей в БД для приложения**
 
-<img width="606" height="428" alt="изображение" src="https://github.com/user-attachments/assets/be8473bf-f718-46a5-a5da-3e78fdf48b34" />
+<img width="1299" height="782" alt="изображение" src="https://github.com/user-attachments/assets/82d5f0b0-2442-4ac4-a281-186d39dbc233" />
