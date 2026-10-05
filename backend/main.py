@@ -1,8 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from user import router as user_router
-from admin import router as admin_router
-app = FastAPI(title="ГИБДД — Мониторинг штрафов (auth only)")
+from routers.driver_router import router as driver_router
+from routers.employee_router import router as employee_router
+app = FastAPI(title="ГИБДД — Мониторинг штрафов")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],
@@ -10,8 +10,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-app.include_router(user_router, prefix="/api", tags=["driver-auth"])
-app.include_router(admin_router, prefix="/api", tags=["employee-auth"])
+app.include_router(driver_router, prefix="/api", tags=["driver-auth"])
+app.include_router(employee_router, prefix="/api", tags=["employee-auth"])
 @app.get("/api/health")
 def health():
     return {"status": "ok"}
