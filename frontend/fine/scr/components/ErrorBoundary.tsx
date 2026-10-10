@@ -8,7 +8,7 @@ interface Props {
 interface State {
   hasError: boolean;
   error: Error | null;
-  errorInfo: string | null | undefined;   // добавили undefined
+  errorInfo: string | null | undefined;   
 }
 
 export default class ErrorBoundary extends Component<Props, State> {
