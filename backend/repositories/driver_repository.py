@@ -1,8 +1,11 @@
 from psycopg2.extensions import connection as Connection
 from db import dict_cursor
+
+
 class DriverRepository:
     def __init__(self, conn: Connection):
         self.conn = conn
+
     def find_by_plate(self, plate: str) -> dict | None:
         cur = dict_cursor(self.conn)
         cur.execute(
