@@ -1,1 +1,12 @@
 необходимые папки и файлы для бэкенда
+app/
+config.py — настройки из .env
+db.py — подключение к PostgreSQL
+security.py — хеширование паролей (bcrypt)
+main.py — точка входа FastAPI
+celery_app.py — конфигурация Celery
+models/ — Pydantic-схемы запросов/ответов
+repositories/ — SQL-запросы (единственное место с SQL)
+services/ — бизнес-логика
+routers/ — HTTP-эндпоинты
+workers/ — фоновые Celery-задачи
