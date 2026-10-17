@@ -1,5 +1,7 @@
 from pydantic import BaseModel
 from typing import Optional
+
+
 class Driver(BaseModel):
     driver_id: int
     name: str
