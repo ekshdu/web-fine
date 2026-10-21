@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import type { Fine } from "../../types";
+import { deleteFine, downloadFineWord, downloadPeriodExcel, getAllFines } from "../../api/fineApi";
+import { getErrorDetail, saveBlob } from "../../utils";
 import Sidebar from "../../components/Sidebar";
 import FineTable from "../../components/FineTable";
 import FineEditModal from "../../components/FineEditModal";
@@ -9,16 +11,18 @@ import PeriodPicker from "../../components/PeriodPicker";
 
 type Section = "svodka" | "fines" | "report";
 
+const PAID_STATUS_ID = 1;
+const OVERDUE_STATUS_ID = 3;
+
 export default function EmployeeMainPage() {
   const { employee, setEmployee } = useAuth();
   const navigate = useNavigate();
   const [section, setSection] = useState<Section>("svodka");
 
-  const [summary] = useState({ total: 0, paid: 0, unpaid: 0, overdue: 0, total_sum: 0 });
-  const [svodkaFines] = useState<Fine[]>([]);
+  const [allFines, setAllFines] = useState<Fine[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const [search, setSearch] = useState("");
-  const [fines] = useState<Fine[]>([]); 
   const [selectedFine, setSelectedFine] = useState<Fine | null>(null);
   const [showEdit, setShowEdit] = useState(false);
   const [editingFine, setEditingFine] = useState<Fine | null>(null);
@@ -26,15 +30,92 @@ export default function EmployeeMainPage() {
   const [reportSearch, setReportSearch] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
-  const [reportFines] = useState<Fine[]>([]);
   const [selectedReportFine, setSelectedReportFine] = useState<Fine | null>(null);
+
+  const loadFines = useCallback(async () => {
+    try {
+      setAllFines(await getAllFines());
+      setLoadError(null);
+    } catch {
+      setLoadError("Не удалось загрузить штрафы. Проверьте, что сервер доступен.");
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadFines();
+  }, [loadFines]);
+
+  const summary = useMemo(() => {
+    const paid = allFines.filter((f) => f.id_status_fine === PAID_STATUS_ID);
+    const overdue = allFines.filter((f) => f.id_status_fine === OVERDUE_STATUS_ID);
+    const unpaid = allFines.length - paid.length - overdue.length;
+    const totalDebt = allFines
+      .filter((f) => f.id_status_fine !== PAID_STATUS_ID)
+      .reduce((sum, f) => sum + Number(f.fine_sum), 0);
+    return { total: allFines.length, paid: paid.length, unpaid, overdue: overdue.length, total_sum: totalDebt };
+  }, [allFines]);
+
+  const fines = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    return query ? allFines.filter((f) => f.num_post.toLowerCase().includes(query)) : allFines;
+  }, [allFines, search]);
+
+  const reportFines = useMemo(() => {
+    const query = reportSearch.trim().toLowerCase();
+    return allFines.filter((f) => {
+      const day = f.date_time.slice(0, 10);
+      if (dateFrom && day < dateFrom) return false;
+      if (dateTo && day > dateTo) return false;
+      return !query || f.num_post.toLowerCase().includes(query);
+    });
+  }, [allFines, reportSearch, dateFrom, dateTo]);
 
   const logout = () => {
     setEmployee(null);
     navigate("/");
   };
 
-  const notReady = () => alert("Функция пока не подключена к серверу");
+  const exportWord = async () => {
+    if (!selectedReportFine) {
+      alert("Выберите строку в таблице отчёта");
+      return;
+    }
+    try {
+      const blob = await downloadFineWord(selectedReportFine.id);
+      saveBlob(blob, `postanovlenie_${selectedReportFine.id}.docx`);
+    } catch (error) {
+      alert(getErrorDetail(error, "Не удалось сформировать Word-документ"));
+    }
+  };
+
+  const exportExcel = async () => {
+    if (!dateFrom || !dateTo) {
+      alert("Сначала выберите период");
+      return;
+    }
+    try {
+      const blob = await downloadPeriodExcel(dateFrom, dateTo);
+      saveBlob(blob, `report_${dateFrom}_${dateTo}.xlsx`);
+    } catch (error) {
+      const status = (error as { response?: { status?: number } })?.response?.status;
+      alert(status === 404 ? "За выбранный период неоплаченных постановлений не найдено" : "Не удалось сформировать Excel-отчёт");
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!selectedFine) {
+      alert("Выберите запись");
+      return;
+    }
+    if (!window.confirm(`Удалить постановление ${selectedFine.num_post}?`)) return;
+    try {
+      await deleteFine(selectedFine.id);
+      setSelectedFine(null);
+      await loadFines();
+    } catch (error) {
+      alert(getErrorDetail(error, "Не удалось удалить штраф"));
+    }
+  };
 
   if (!employee) return null;
 
@@ -59,6 +140,8 @@ export default function EmployeeMainPage() {
       />
 
       <main className="main-content">
+        {loadError && <div className="error-text">{loadError}</div>}
+
         {section === "svodka" && (
           <>
             <h2 className="page-heading">Сводка</h2>
@@ -84,7 +167,7 @@ export default function EmployeeMainPage() {
                 <span className="stat-value">{summary.total_sum} руб.</span>
               </div>
             </div>
-            <FineTable fines={svodkaFines} />
+            <FineTable fines={allFines} />
           </>
         )}
 
@@ -98,9 +181,12 @@ export default function EmployeeMainPage() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
-              <button className="btn btn-secondary btn-sm" style={{ width: "auto" }} onClick={notReady}>Найти</button>
               <span className="spacer" />
-              <button className="btn btn-secondary btn-sm" style={{ width: "auto" }} onClick={() => { setEditingFine(null); setShowEdit(true); }}>
+              <button
+                className="btn btn-secondary btn-sm"
+                style={{ width: "auto" }}
+                onClick={() => { setEditingFine(null); setShowEdit(true); }}
+              >
                 Добавить
               </button>
               <button
@@ -110,7 +196,7 @@ export default function EmployeeMainPage() {
               >
                 Редактировать
               </button>
-              <button className="btn btn-danger btn-sm" style={{ width: "auto" }} onClick={notReady}>
+              <button className="btn btn-danger btn-sm" style={{ width: "auto" }} onClick={handleDelete}>
                 Удалить
               </button>
             </div>
@@ -133,10 +219,9 @@ export default function EmployeeMainPage() {
                 value={reportSearch}
                 onChange={(e) => setReportSearch(e.target.value)}
               />
-              <button className="btn btn-secondary btn-sm" style={{ width: "auto" }} onClick={notReady}>Найти</button>
               <span className="spacer" />
-              <button className="btn btn-secondary btn-sm" style={{ width: "auto" }} onClick={notReady}>Word</button>
-              <button className="btn btn-secondary btn-sm" style={{ width: "auto" }} onClick={notReady}>Excel</button>
+              <button className="btn btn-secondary btn-sm" style={{ width: "auto" }} onClick={exportWord}>Word</button>
+              <button className="btn btn-secondary btn-sm" style={{ width: "auto" }} onClick={exportExcel}>Excel</button>
             </div>
             <FineTable
               fines={reportFines}
@@ -150,8 +235,9 @@ export default function EmployeeMainPage() {
       {showEdit && (
         <FineEditModal
           fine={editingFine}
+          employeeId={employee.id}
           onClose={() => setShowEdit(false)}
-          onSaved={() => {}}
+          onSaved={() => { setSelectedFine(null); void loadFines(); }}
         />
       )}
     </div>
