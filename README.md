@@ -41,3 +41,36 @@
 <summary>Страница отчетности</summary>
 <img width="2087" height="738" alt="изображение" src="https://github.com/user-attachments/assets/00328788-43f1-4dc0-b4ce-09b09843eafb" />
 </details>
+
+**Готовая версия фронтенда сайта**
+
+<details>
+<summary>Главная для сотрудника</summary>
+<img width="1872" height="941" alt="изображение" src="https://github.com/user-attachments/assets/2aa48cf2-214f-4f9c-8e0b-7e83d2b132d1" />
+</details>
+
+
+<details>
+<summary>Страница штрафов</summary>
+<img width="1867" height="937" alt="изображение" src="https://github.com/user-attachments/assets/74b78f74-82cb-44e4-b3ea-9af3fe5cf102" />
+</details>
+
+<details>
+<summary>Страница отчетности</summary>
+<img width="1869" height="938" alt="изображение" src="https://github.com/user-attachments/assets/ffcc1834-702b-4092-8bb6-581150d40185" />
+</details>
+
+<details>
+<summary>Главная для водителя</summary>
+<img width="1870" height="939" alt="изображение" src="https://github.com/user-attachments/assets/4f5f85a7-c773-4e74-861a-1c2ddaf8adb6" />
+</details>
+
+<details>
+<summary>Профиль водителя</summary>
+<img width="1871" height="940" alt="изображение" src="https://github.com/user-attachments/assets/f1058d79-a789-4e9f-b107-5692871c0c91" />
+</details>
+
+**Фишка сайта**
+
+Фишкой стал фоновый воркер Celery при помощи брокера Redis. В фоне создается Excel-таблица с просроченными штрафами, после чего создается общий Word-документ со всеми постановлениями.
+Запуск происходит при помощи Docker.
