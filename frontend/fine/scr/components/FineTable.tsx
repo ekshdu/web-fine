@@ -1,4 +1,5 @@
 import type { Fine } from "../types";
+import { fineOwnerName, formatDateTime } from "../utils";
 import StatusBadge from "./StatusBadge";
 
 interface Props {
@@ -19,7 +20,7 @@ export default function FineTable({ fines, onRowClick, selectedId }: Props) {
         <tbody>
           {fines.length === 0 && (
             <tr className="empty-row">
-              <td colSpan={headers.length}>Нет данных. Backend еще не подключен.</td>
+              <td colSpan={headers.length}>Штрафов не найдено.</td>
             </tr>
           )}
           {fines.map((f) => (
@@ -29,15 +30,15 @@ export default function FineTable({ fines, onRowClick, selectedId }: Props) {
               onClick={() => onRowClick && onRowClick(f)}
             >
               <td>{f.id}</td>
-              <td>{f.date_time}</td>
+              <td>{formatDateTime(f.date_time)}</td>
               <td>{f.num_post}</td>
-              <td>{f.fio}</td>
+              <td>{fineOwnerName(f)}</td>
               <td>{f.car_num}</td>
               <td>{f.fine_place}</td>
               <td>{f.section_num || "-"}</td>
-              <td>{f.actual_speed || "-"} / {f.fine_speedcol || "-"}</td>
-              <td>{f.summary} руб.</td>
-              <td><StatusBadge status={f.status} /></td>
+              <td>{f.actual_speed || "-"} / {f.fine_speed || "-"}</td>
+              <td>{f.fine_sum} руб.</td>
+              <td><StatusBadge status={f.status_name} /></td>
             </tr>
           ))}
         </tbody>
