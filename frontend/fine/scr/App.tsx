@@ -9,11 +9,11 @@ import EmployeeLoginPage from "./pages/employee/EmployeeLoginPage";
 import EmployeeMainPage from "./pages/employee/EmployeeMainPage";
 function RequireDriver({ children }: { children: ReactElement }) {
   const { driver } = useAuth();
-  return driver ? children : <Navigate to="/driver/login" />;
+  return driver ? children : <Navigate to="/" replace />;
 }
 function RequireEmployee({ children }: { children: ReactElement }) {
   const { employee } = useAuth();
-  return employee ? children : <Navigate to="/employee/login" />;
+  return employee ? children : <Navigate to="/" replace />;
 }
 export default function App() {
   return (
