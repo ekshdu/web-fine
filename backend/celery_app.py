@@ -1,5 +1,4 @@
 from celery import Celery
-from celery.schedules import crontab
 from config import settings
 
 celery_app = Celery(
@@ -10,10 +9,5 @@ celery_app = Celery(
 )
 
 celery_app.conf.timezone = "Europe/Moscow"
-
-celery_app.conf.beat_schedule = {
-    "generate-overdue-report-daily": {
-        "task": "workers.tasks.generate_overdue_report",
-        "schedule": crontab(hour=settings.report_cron_hour, minute=0),
-    },
-}
+celery_app.conf.broker_connection_retry_on_startup = True
+celery_app.conf.broker_transport_options = {"socket_connect_timeout": 3, "socket_timeout": 3}
