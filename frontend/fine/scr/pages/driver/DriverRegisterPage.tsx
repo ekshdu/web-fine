@@ -1,25 +1,60 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import type { ChangeEvent } from "react";
 import { useNavigate } from "react-router-dom";
+import { getGenders, registerDriver } from "../../api/driverApi";
+import type { Gender } from "../../types";
+import { getErrorDetail } from "../../utils";
+
+type FormField =
+  | "surname" | "name" | "middle_name" | "plate" | "car_model"
+  | "place_of_birth" | "date_of_birth" | "id_gender";
 
 export default function DriverRegisterPage() {
   const navigate = useNavigate();
-  const [form, setForm] = useState({
+  const [genders, setGenders] = useState<Gender[]>([]);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [form, setForm] = useState<Record<FormField, string>>({
     surname: "", name: "", middle_name: "",
     plate: "", car_model: "", place_of_birth: "", date_of_birth: "",
     id_gender: "",
   });
 
-  const set = (field: string) => (e: any) =>
-    setForm((f) => ({ ...f, [field]: e.target.value }));
+  useEffect(() => {
+    getGenders()
+      .then(setGenders)
+      .catch(() => setError("Не удалось загрузить список полов. Проверьте, что сервер доступен."));
+  }, []);
 
-  const submit = () => {
-    if (!form.surname || !form.name || !form.plate || !form.car_model) {
-      alert("Заполните обязательные поля (ФИО, авто)");
+  const set = (field: FormField) => (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+    setForm((f) => ({ ...f, [field]: field === "plate" ? e.target.value.toUpperCase() : e.target.value }));
+
+  const submit = async () => {
+    setError("");
+    if (!form.surname.trim() || !form.name.trim() || !form.plate.trim() || !form.car_model.trim()) {
+      setError("Заполните обязательные поля (ФИО, авто)");
       return;
     }
-    // TODO: подключить POST /driver/register, когда появится эндпоинт на backend
-    alert("Функция регистрации пока не подключена к серверу");
-    console.log("Данные формы регистрации:", form);
+
+    setLoading(true);
+    try {
+      await registerDriver({
+        surname: form.surname.trim(),
+        name: form.name.trim(),
+        middle_name: form.middle_name.trim() || null,
+        plate: form.plate.trim(),
+        car_model: form.car_model.trim(),
+        id_gender: form.id_gender ? Number(form.id_gender) : null,
+        place_of_birth: form.place_of_birth.trim() || null,
+        date_of_birth: form.date_of_birth || null,
+      });
+      alert("Регистрация прошла успешно. Теперь войдите по госномеру.");
+      navigate("/driver/login");
+    } catch (err) {
+      setError(getErrorDetail(err, "Не удалось зарегистрироваться. Проверьте соединение с сервером."));
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -44,8 +79,9 @@ export default function DriverRegisterPage() {
           <label className="form-label">Пол</label>
           <select className="input-field" value={form.id_gender} onChange={set("id_gender")}>
             <option value="">Не выбрано</option>
-            <option value="1">Мужской</option>
-            <option value="2">Женский</option>
+            {genders.map((gender) => (
+              <option key={gender.id} value={gender.id}>{gender.name}</option>
+            ))}
           </select>
         </div>
 
@@ -68,7 +104,11 @@ export default function DriverRegisterPage() {
           <input className="input-field" type="date" value={form.date_of_birth} onChange={set("date_of_birth")} />
         </div>
 
-        <button className="btn btn-primary" onClick={submit}>Зарегистрироваться</button>
+        {error && <p className="error-text">{error}</p>}
+
+        <button className="btn btn-primary" onClick={submit} disabled={loading}>
+          {loading ? "Регистрация..." : "Зарегистрироваться"}
+        </button>
         <div className="spacer-top" />
         <button className="btn btn-secondary" onClick={() => navigate("/driver/login")}>Отмена</button>
       </div>
