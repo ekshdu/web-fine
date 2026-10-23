@@ -26,7 +26,6 @@ def _date(value) -> str:
 
 
 def _render_fine_document(rec: dict) -> docx.Document:
-    """Заполненное постановление по шаблону (shablon1 — для id_gender=1, иначе shablon2)."""
     date_time = rec["date_time"]
     actual_speed = rec.get("actual_speed")
     limit_speed = rec.get("fine_speed")
@@ -91,7 +90,6 @@ def build_fine_word(rec: dict) -> bytes:
 
 
 def build_combined_word(records: list[dict]) -> bytes:
-    """Один Word-документ со всеми постановлениями, каждое с новой страницы."""
     master = _render_fine_document(records[0])
     composer = Composer(master)
     for record in records[1:]:
@@ -103,7 +101,6 @@ def build_combined_word(records: list[dict]) -> bytes:
 
 
 def build_period_excel(rows: list[dict]) -> bytes:
-    """Excel-реестр неоплаченных и просроченных постановлений за период."""
     workbook = Workbook()
     sheet = workbook.active
     sheet.title = "Постановления"
