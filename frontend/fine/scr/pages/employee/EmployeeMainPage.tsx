@@ -8,6 +8,7 @@ import Sidebar from "../../components/Sidebar";
 import FineTable from "../../components/FineTable";
 import FineEditModal from "../../components/FineEditModal";
 import PeriodPicker from "../../components/PeriodPicker";
+import OverdueReportControl from "../../components/OverdueReportControl";
 
 type Section = "svodka" | "fines" | "report";
 
@@ -167,7 +168,8 @@ export default function EmployeeMainPage() {
                 <span className="stat-value">{summary.total_sum} руб.</span>
               </div>
             </div>
-            <FineTable fines={allFines} />
+            <h3 className="page-heading" style={{ fontSize: 16 }}>Последние штрафы</h3>
+            <FineTable fines={allFines.slice(0, 10)} />
           </>
         )}
 
@@ -223,6 +225,7 @@ export default function EmployeeMainPage() {
               <button className="btn btn-secondary btn-sm" style={{ width: "auto" }} onClick={exportWord}>Word</button>
               <button className="btn btn-secondary btn-sm" style={{ width: "auto" }} onClick={exportExcel}>Excel</button>
             </div>
+            <OverdueReportControl />
             <FineTable
               fines={reportFines}
               selectedId={selectedReportFine?.id}
