@@ -5,7 +5,6 @@ import { createFine, getReferences, updateFine } from "../api/fineApi";
 import { getErrorDetail } from "../utils";
 
 interface FineEditModalProps {
-  /** Штраф для редактирования; null — режим создания нового штрафа */
   fine: Fine | null;
   employeeId: number;
   onClose: () => void;
@@ -18,6 +17,7 @@ const toInputDateTime = (value?: string): string => {
   now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
   return now.toISOString().slice(0, 16);
 };
+const NONE_ID = 0;
 
 const FineEditModal = ({ fine, employeeId, onClose, onSaved }: FineEditModalProps): ReactElement => {
   const isCreate = fine === null;
@@ -26,9 +26,9 @@ const FineEditModal = ({ fine, employeeId, onClose, onSaved }: FineEditModalProp
   const [carNum, setCarNum] = useState(fine?.car_num ?? "");
   const [dateTime, setDateTime] = useState(toInputDateTime(fine?.date_time));
   const [finePlace, setFinePlace] = useState(fine?.fine_place ?? "");
-  const [idFineSection, setIdFineSection] = useState<number>(fine?.id_fine_section ?? 0);
-  const [idSpeedFine, setIdSpeedFine] = useState<number>(fine?.id_speed_fine ?? 0);
-  const [actualSpeed, setActualSpeed] = useState<number>(fine?.actual_speed ?? 0);
+  const [idFineSection, setIdFineSection] = useState<number>(fine?.id_fine_section ?? NONE_ID);
+  const [idSpeedFine, setIdSpeedFine] = useState<number>(fine?.id_speed_fine ?? NONE_ID);
+  const [actualSpeed, setActualSpeed] = useState<string>(fine?.actual_speed != null ? String(fine.actual_speed) : "");
   const [idFineSum, setIdFineSum] = useState<number>(fine?.id_fine_sum ?? 0);
   const [idStatusFine, setIdStatusFine] = useState<number>(fine?.id_status_fine ?? 0);
   const [isSaving, setIsSaving] = useState(false);
@@ -40,8 +40,7 @@ const FineEditModal = ({ fine, employeeId, onClose, onSaved }: FineEditModalProp
         setReferences(data);
         // при создании подставляем первые значения справочников, иначе в запрос уйдут нули
         if (isCreate) {
-          setIdFineSection(data.fine_sections[0]?.id ?? 0);
-          setIdSpeedFine(data.fine_speeds[0]?.id ?? 0);
+          setIdFineSection(data.fine_sections[0]?.id ?? NONE_ID);
           setIdFineSum(data.fine_sums[0]?.id ?? 0);
         }
       })
@@ -49,10 +48,16 @@ const FineEditModal = ({ fine, employeeId, onClose, onSaved }: FineEditModalProp
   }, [isCreate]);
 
   const handleSave = async () => {
-    if (isCreate && (!carNum.trim() || !finePlace.trim())) {
+    if (!carNum.trim() || !finePlace.trim()) {
       setErrorMessage("Заполните госномер и место нарушения");
       return;
     }
+    const speedText = actualSpeed.trim();
+    if (speedText && !/^\d+$/.test(speedText)) {
+      setErrorMessage("Фактическая скорость должна быть числом");
+      return;
+    }
+    const speedValue = speedText ? Number(speedText) : null;
 
     setIsSaving(true);
     setErrorMessage(null);
@@ -64,18 +69,19 @@ const FineEditModal = ({ fine, employeeId, onClose, onSaved }: FineEditModalProp
           car_num: carNum.trim(),
           date_time: dateTime,
           fine_place: finePlace.trim(),
-          id_fine_section: idFineSection,
-          id_speed_fine: idSpeedFine,
-          actual_speed: actualSpeed,
+          id_fine_section: idFineSection || null,
+          id_speed_fine: idSpeedFine || null,
+          actual_speed: speedValue,
           id_fine_sum: idFineSum,
         });
       } else {
         saved = await updateFine(fine.id, {
+          car_num: carNum.trim(),
           date_time: dateTime,
           fine_place: finePlace.trim(),
-          id_fine_section: idFineSection,
-          id_speed_fine: idSpeedFine,
-          actual_speed: actualSpeed,
+          id_fine_section: idFineSection || null,
+          id_speed_fine: idSpeedFine || null,
+          actual_speed: speedValue,
           id_fine_sum: idFineSum,
           id_status_fine: idStatusFine,
         });
@@ -101,13 +107,7 @@ const FineEditModal = ({ fine, employeeId, onClose, onSaved }: FineEditModalProp
 
         <div className="form-group">
           <label className="form-label">Госномер</label>
-          <input
-            className="input-field"
-            type="text"
-            value={carNum}
-            disabled={!isCreate}
-            onChange={(event) => setCarNum(event.target.value)}
-          />
+          <input className="input-field" type="text" value={carNum} onChange={(event) => setCarNum(event.target.value)} />
         </div>
 
         {!isCreate && (
@@ -130,6 +130,7 @@ const FineEditModal = ({ fine, employeeId, onClose, onSaved }: FineEditModalProp
         <div className="form-group">
           <label className="form-label">Статья</label>
           <select className="input-field" value={idFineSection} onChange={(event) => setIdFineSection(Number(event.target.value))}>
+            <option value={NONE_ID}>Не указана</option>
             {references?.fine_sections.map((section) => (
               <option key={section.id} value={section.id}>{section.section_num}</option>
             ))}
@@ -137,8 +138,9 @@ const FineEditModal = ({ fine, employeeId, onClose, onSaved }: FineEditModalProp
         </div>
 
         <div className="form-group">
-          <label className="form-label">Ограничение скорости</label>
+          <label className="form-label">Ограничение скорости на участке</label>
           <select className="input-field" value={idSpeedFine} onChange={(event) => setIdSpeedFine(Number(event.target.value))}>
+            <option value={NONE_ID}>Без нарушения скорости</option>
             {references?.fine_speeds.map((speed) => (
               <option key={speed.id} value={speed.id}>{speed.fine_speed} км/ч</option>
             ))}
@@ -146,8 +148,14 @@ const FineEditModal = ({ fine, employeeId, onClose, onSaved }: FineEditModalProp
         </div>
 
         <div className="form-group">
-          <label className="form-label">Фактическая скорость, км/ч</label>
-          <input className="input-field" type="number" min={0} value={actualSpeed} onChange={(event) => setActualSpeed(Number(event.target.value))} />
+          <label className="form-label">Фактическая скорость, км/ч (только цифры)</label>
+          <input
+            className="input-field"
+            type="text"
+            inputMode="numeric"
+            value={actualSpeed}
+            onChange={(event) => setActualSpeed(event.target.value)}
+          />
         </div>
 
         <div className="form-group">
