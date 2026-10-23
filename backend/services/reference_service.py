@@ -12,3 +12,6 @@ class ReferenceService:
             "fine_sections": self.repository.get_fine_sections(),
             "fine_speeds": self.repository.get_fine_speeds(),
         }
+
+    def get_genders(self) -> list[dict]:
+        return self.repository.get_genders()

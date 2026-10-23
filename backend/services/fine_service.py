@@ -27,7 +27,6 @@ class FineService:
         return [record for record in records if record]
 
     def get_all_fines(self) -> list[dict]:
-        # просроченные штрафы помечаем при каждой загрузке списка, как в старой версии программы
         self.refresh_overdue_statuses()
         return self.repository.get_all()
 
@@ -46,6 +45,8 @@ class FineService:
         return self.repository.create(data)
 
     def update_fine(self, fine_id: int, data: dict) -> dict | None:
+        if data.get("car_num") is not None:
+            data["car_num"] = data["car_num"].strip().upper()
         return self.repository.update(fine_id, data)
 
     def delete_fine(self, fine_id: int) -> bool:
