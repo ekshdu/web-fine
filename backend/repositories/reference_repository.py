@@ -32,4 +32,11 @@ class ReferenceRepository:
         cur.execute("SELECT id, fine_speedcol AS fine_speed FROM fine_speed ORDER BY fine_speedcol")
         rows = cur.fetchall()
         cur.close()
-        return rows 
+        return rows
+
+    def get_genders(self) -> list[dict]:
+        cur = dict_cursor(self.conn)
+        cur.execute("SELECT id, name FROM gender ORDER BY id")
+        rows = cur.fetchall()
+        cur.close()
+        return rows

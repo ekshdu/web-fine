@@ -21,3 +21,41 @@ class DriverRepository:
         row = cur.fetchone()
         cur.close()
         return row
+
+    def gender_exists(self, gender_id: int) -> bool:
+        cur = self.conn.cursor()
+        cur.execute("SELECT 1 FROM gender WHERE id = %s", (gender_id,))
+        exists = cur.fetchone() is not None
+        cur.close()
+        return exists
+
+    def plate_exists(self, plate: str) -> bool:
+        cur = self.conn.cursor()
+        cur.execute("SELECT 1 FROM car WHERE car_num = %s", (plate,))
+        exists = cur.fetchone() is not None
+        cur.close()
+        return exists
+
+    def create_with_car(self, data: dict) -> dict | None:
+        cur = dict_cursor(self.conn)
+        try:
+            cur.execute(
+                """
+                INSERT INTO driver (name, surname, middle_name, place_of_birth, date_of_birth, id_gender)
+                VALUES (%s, %s, %s, %s, %s, %s) RETURNING id
+                """,
+                (data["name"], data["surname"], data["middle_name"], data["place_of_birth"],
+                 data["date_of_birth"], data["id_gender"]),
+            )
+            driver_id = cur.fetchone()["id"]
+            cur.execute(
+                "INSERT INTO car (id_driver, car_num, car_model) VALUES (%s, %s, %s)",
+                (driver_id, data["plate"], data["car_model"]),
+            )
+            self.conn.commit()
+        except Exception:
+            self.conn.rollback()
+            raise
+        finally:
+            cur.close()
+        return self.find_by_plate(data["plate"])

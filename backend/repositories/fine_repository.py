@@ -80,12 +80,24 @@ class FineRepository:
         self.conn.commit()
         cur.close()
         return self.get_by_id(new_id)
+    NULLABLE_COLUMNS = {"id_speed_fine", "id_fine_section", "actual_speed"}
 
     def update(self, fine_id: int, data: dict) -> dict | None:
+        data = dict(data)
+        car_num = data.pop("car_num", None)
+        if car_num is not None:
+            cur = dict_cursor(self.conn)
+            cur.execute("SELECT id FROM car WHERE car_num = %s", (car_num,))
+            car_row = cur.fetchone()
+            cur.close()
+            if not car_row:
+                raise ValueError("Автомобиль с таким госномером не найден")
+            data["id_car"] = car_row["id"]
+
         fields = []
         values = []
         for column, value in data.items():
-            if value is not None:
+            if value is not None or column in self.NULLABLE_COLUMNS:
                 fields.append(f"{column} = %s")
                 values.append(value)
 
@@ -162,8 +174,8 @@ class FineRepository:
             JOIN car c ON tf.id_car = c.id
             JOIN driver d ON c.id_driver = d.id
             JOIN fine_sum fs ON tf.id_fine_sum = fs.id
-            JOIN fine_section sec ON tf.id_fine_section = sec.id
-            JOIN fine_speed sp ON tf.id_speed_fine = sp.id
+            LEFT JOIN fine_section sec ON tf.id_fine_section = sec.id
+            LEFT JOIN fine_speed sp ON tf.id_speed_fine = sp.id
             JOIN status_fine st ON tf.id_status_fine = st.id
             JOIN emp_gibdd e ON tf.id_emp = e.id
         """
