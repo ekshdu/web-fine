@@ -1,4 +1,5 @@
 import logging
+import os
 from celery_app import celery_app
 from db import get_connection, release_connection
 from repositories.fine_repository import FineRepository
@@ -8,7 +9,7 @@ from services.report_service import ReportService
 logger = logging.getLogger("celery.tasks")
 
 
-@celery_app.task(name="workers.tasks.generate_overdue_report", bind=True, max_retries=3)
+@celery_app.task(name="workers.tasks.generate_overdue_report", bind=True, max_retries=2)
 def generate_overdue_report(self):
     conn = get_connection()
     try:
@@ -23,7 +24,6 @@ def generate_overdue_report(self):
             return {"status": "empty"}
 
         report_service = ReportService()
-        # 1) таблица просроченных постановлений, 2) один Word со всеми постановлениями из неё
         excel_path = report_service.build_excel_report(overdue_fines)
         document_records = fine_service.get_overdue_document_records(overdue_fines)
         word_path = report_service.build_word_report(document_records)
@@ -32,11 +32,11 @@ def generate_overdue_report(self):
         return {
             "status": "ok",
             "count": len(overdue_fines),
-            "word_path": word_path,
-            "excel_path": excel_path,
+            "word_file": os.path.basename(word_path),
+            "excel_file": os.path.basename(excel_path),
         }
     except Exception as exc:
         logger.exception("Ошибка формирования реестра просроченных штрафов")
-        raise self.retry(exc=exc, countdown=60)
+        raise self.retry(exc=exc, countdown=5)
     finally:
         release_connection(conn)
