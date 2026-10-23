@@ -3,7 +3,7 @@ export interface Fine {
   date_time: string;
   num_post: string;
   fine_place: string;
-  actual_speed: number;
+  actual_speed: number | null;
   id_car: number;
   id_emp: number;
   driver_name: string;
@@ -13,10 +13,10 @@ export interface Fine {
   car_model: string | null;
   fine_sum: number;
   id_fine_sum: number;
-  section_num: string;
-  id_fine_section: number;
-  fine_speed: number;
-  id_speed_fine: number;
+  section_num: string | null;
+  id_fine_section: number | null;
+  fine_speed: number | null;
+  id_speed_fine: number | null;
   status_name: string;
   id_status_fine: number;
   emp_name: string;
@@ -24,25 +24,26 @@ export interface Fine {
 }
 
 export interface FineUpdateRequest {
+  car_num?: string;
   id_fine_sum?: number;
   id_status_fine?: number;
-  id_speed_fine?: number;
-  id_fine_section?: number;
+  id_speed_fine?: number | null;
+  id_fine_section?: number | null;
   date_time?: string;
   num_post?: string;
   fine_place?: string;
-  actual_speed?: number;
+  actual_speed?: number | null;
 }
 
 export interface FineCreateRequest {
   id_emp: number;
   car_num: string;
   id_fine_sum: number;
-  id_speed_fine: number;
-  id_fine_section: number;
+  id_speed_fine: number | null;
+  id_fine_section: number | null;
   date_time: string;
   fine_place: string;
-  actual_speed: number;
+  actual_speed: number | null;
 }
 
 export interface ReferenceStatus {
