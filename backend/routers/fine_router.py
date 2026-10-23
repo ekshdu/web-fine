@@ -67,7 +67,10 @@ def create_fine(data: FineCreateRequest, service: FineService = Depends(get_fine
 
 @router.put("/fines/{fine_id}")
 def update_fine(fine_id: int, data: FineUpdateRequest, service: FineService = Depends(get_fine_service)):
-    fine = service.update_fine(fine_id, data.model_dump(exclude_unset=True))
+    try:
+        fine = service.update_fine(fine_id, data.model_dump(exclude_unset=True))
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error))
     if not fine:
         raise HTTPException(status_code=404, detail="Штраф не найден")
     return fine
